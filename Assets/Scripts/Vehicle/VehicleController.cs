@@ -219,6 +219,12 @@ public class VehicleController : MonoBehaviour {
     public float rtractionR = 0f;
     public string roadType;
 
+    public bool InReverse
+    {
+        get;
+        private set;
+    }
+
     void OnEnable()
     {
         //cache rigidbody
@@ -251,7 +257,6 @@ public class VehicleController : MonoBehaviour {
         //check delay so we cant shift up/down too quick
         if (Time.time - lastShift > shiftDelay)
         {
-            
             //shift up
             if (currentRPM / maxRPM > shiftUpCurve.Evaluate(accellInput) && Mathf.RoundToInt(currentGear) < gearRatios.Length)
             {
@@ -271,6 +276,22 @@ public class VehicleController : MonoBehaviour {
                 targetGear = lastGear - 1;
                 lastShift = Time.time;
                 shifting = true;
+            }
+            
+            float groundSpeed = Vector3.Dot(GetComponent<Rigidbody>().velocity, transform.forward);
+            print("groundSpeed " + groundSpeed);
+            if(Mathf.Abs(groundSpeed) < 0.1f)
+            {
+                if (accellInput < -0.8f && !InReverse)
+                {
+                    InReverse = true;
+                    print("REVERSE");
+                }
+                else if (accellInput > 0.8 && InReverse)
+                {
+                    InReverse = false;
+                    print("NOT REVERSE");
+                }
             }
         }
 
@@ -309,7 +330,8 @@ public class VehicleController : MonoBehaviour {
 
         //calc current gear ratio
         float gearRatio = Mathf.Lerp(gearRatios[Mathf.FloorToInt(currentGear) - 1], gearRatios[Mathf.CeilToInt(currentGear) - 1], currentGear - Mathf.Floor(currentGear));
-        
+        if (InReverse) gearRatio = -1.0f * gearRatios[0];
+
         //calc engine RPM from wheel rpm
         float wheelsRPM = (axles[1].right.rpm + axles[1].left.rpm) / 2f;
         if (wheelsRPM < 0)
@@ -410,10 +432,10 @@ public class VehicleController : MonoBehaviour {
 
     private void ApplyTorque()
     {
-        
-        if (accellInput >= 0) {
+        float reverseAdjustedAccell = InReverse ? -accellInput : accellInput;
+        if (reverseAdjustedAccell >= 0) {
             //motor
-            float torquePerWheel = accellInput * (currentTorque / numberOfDrivingWheels);
+            float torquePerWheel = reverseAdjustedAccell * (currentTorque / numberOfDrivingWheels);
             foreach (var axle in axles)
             {
                 if (axle.motor)
@@ -439,7 +461,7 @@ public class VehicleController : MonoBehaviour {
             //brakes 
             foreach (var axle in axles)
             {
-                var brakeTorque = maxBrakeTorque * accellInput * -1 * axle.brakeBias;
+                var brakeTorque = maxBrakeTorque * reverseAdjustedAccell * -1 * axle.brakeBias;
                 axle.left.brakeTorque = brakeTorque;
                 axle.right.brakeTorque = brakeTorque;
                 axle.left.motorTorque = 0f;
@@ -520,7 +542,7 @@ public class VehicleController : MonoBehaviour {
 
     private void OnGUI()
     {
-        GUI.Label(new Rect(10, 10, 500, 200), "GEAR " + (Mathf.RoundToInt(currentGear)));
+        GUI.Label(new Rect(10, 10, 500, 200), InReverse ? "GEAR R" : "GEAR " +(Mathf.RoundToInt(currentGear)));
         GUI.Label(new Rect(10, 30, 500, 200), "RPM " + Mathf.RoundToInt(currentRPM));
         GUI.Label(new Rect(10, 50, 500, 200), "MPH " + Mathf.RoundToInt(currentSpeed));
         GUI.Label(new Rect(10, 70, 500, 200), "THROTTLE " +  accellInput.ToString("F2"));

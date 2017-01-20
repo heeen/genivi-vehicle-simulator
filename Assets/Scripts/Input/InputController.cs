@@ -65,6 +65,7 @@ public abstract class InputController : MonoBehaviour
         CTRL_NUMERIC_7,
         CTRL_NUMERIC_8,
         CTRL_NUMERIC_9,
+        TOGGLE_REVERSE,
     };
 
     private Dictionary<EventType, System.Func<System.Action>> events;
@@ -122,7 +123,8 @@ public abstract class InputController : MonoBehaviour
                 {EventType.CTRL_NUMERIC_6, () => ControlNumeric6 },
                 {EventType.CTRL_NUMERIC_7, () => ControlNumeric7 },
                 {EventType.CTRL_NUMERIC_8, () => ControlNumeric8 },
-                {EventType.CTRL_NUMERIC_9, () => ControlNumeric9 }
+                {EventType.CTRL_NUMERIC_9, () => ControlNumeric9 },
+                {EventType.TOGGLE_REVERSE, () => ToggleReverse }
         };
     }
 
@@ -187,6 +189,7 @@ public abstract class InputController : MonoBehaviour
     public event System.Action ControlNumeric7;
     public event System.Action ControlNumeric8;
     public event System.Action ControlNumeric9;
+    public event System.Action ToggleReverse;
 #pragma warning restore 0067
 
     //continuous input
